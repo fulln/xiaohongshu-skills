@@ -13,6 +13,7 @@ from .publish import _click_publish_tab, _find_content_element, _navigate_to_pub
 from .selectors import (
     AUTO_FORMAT_BUTTON_TEXT,
     CONTENT_EDITOR,
+    LONG_ARTICLE_CONTENT_EDITOR,
     LONG_ARTICLE_TITLE,
     NEW_CREATION_BUTTON_TEXT,
     NEXT_STEP_BUTTON_TEXT,
@@ -140,32 +141,35 @@ def select_template(page: Page, template_name: str) -> bool:
     return bool(clicked)
 
 
-def click_next_and_fill_description(page: Page, description: str) -> None:
-    """点击下一步，进入发布页并填写正文描述。
+def click_next_and_fill_description(page: Page, description: str, title: str = "") -> None:
+    """点击下一步，进入发布页并填写标题与正文描述。
 
-    注意：发布页有独立的正文编辑器，需单独填入。
+    注意：发布页有独立的标题/正文编辑器，需单独填入。
     如果 description 超过 1000 字，应压缩到 800 字左右。
 
     Args:
         page: CDP 页面对象。
         description: 发布页正文描述。
+        title: 发布页标题；为空时保持页面现有标题。
 
     Raises:
         PublishError: 操作失败。
     """
-    # 点击"下一步"
-    _click_button_by_text(page, NEXT_STEP_BUTTON_TEXT)
-    time.sleep(_PAGE_LOAD_WAIT)
+    if _has_button_by_text(page, NEXT_STEP_BUTTON_TEXT):
+        _click_button_by_text(page, NEXT_STEP_BUTTON_TEXT)
+        time.sleep(_PAGE_LOAD_WAIT)
 
-    # 填写发布页描述
+    if title:
+        _fill_publish_page_title(page, title)
+        logger.info("已填写发布页标题: %s", title[:20])
+
     if description:
-        # 截断描述到 1000 字以内
         if len(description) > 1000:
             description = description[:800]
             logger.warning("描述超过1000字，已截断到800字")
 
         content_selector = _find_content_element(page)
-        page.input_content_editable(content_selector, description)
+        _fill_publish_page_description(page, content_selector, description)
         logger.info("已填写发布页描述")
 
 
@@ -206,8 +210,11 @@ def _fill_long_title(page: Page, title: str) -> None:
 
 def _fill_long_content(page: Page, content: str) -> None:
     """填写长文正文（TipTap/ProseMirror 编辑器）。"""
-    content_selector = CONTENT_EDITOR
-    if not page.has_element(CONTENT_EDITOR):
+    if page.has_element(LONG_ARTICLE_CONTENT_EDITOR):
+        content_selector = LONG_ARTICLE_CONTENT_EDITOR
+    elif page.has_element(CONTENT_EDITOR):
+        content_selector = CONTENT_EDITOR
+    else:
         content_selector = _find_content_element(page)
 
     page.input_content_editable(content_selector, content)
@@ -256,6 +263,27 @@ def _wait_for_templates(page: Page) -> bool:
     return False
 
 
+def _has_button_by_text(page: Page, text: str) -> bool:
+    """检查页面中是否存在指定文本按钮。"""
+    return bool(page.evaluate(
+        f"""
+        (() => {{
+            const elems = document.querySelectorAll(
+                'button, [role="button"], span, div, a, [class*="btn"]'
+            );
+            for (const el of elems) {{
+                if (el.textContent.trim() === {json.dumps(text)}) {{
+                    const rect = el.getBoundingClientRect();
+                    if (rect.width === 0 || rect.height === 0) continue;
+                    return true;
+                }}
+            }}
+            return false;
+        }})()
+        """
+    ))
+
+
 def _click_button_by_text(page: Page, text: str) -> None:
     """通过文本内容查找并点击按钮（通用方法）。"""
     clicked = page.evaluate(
@@ -279,3 +307,41 @@ def _click_button_by_text(page: Page, text: str) -> None:
 
     if not clicked:
         raise PublishError(f"未找到'{text}'按钮，页面结构可能已变化")
+
+
+def _fill_publish_page_title(page: Page, title: str) -> None:
+    """填写发布页标题输入框。"""
+    page.input_text('input.d-text', title)
+    time.sleep(0.3)
+
+
+def _fill_publish_page_description(page: Page, selector: str, description: str) -> None:
+    """快速填写发布页正文描述，避免逐行输入超时。"""
+    success = page.evaluate(
+        f"""
+        (() => {{
+            const el = document.querySelector({json.dumps(selector)});
+            if (!el) return false;
+
+            const escapeHtml = (text) => text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            const description = {json.dumps(description)};
+            const lines = description.split(String.fromCharCode(10));
+            const html = lines.map((line) =>
+                line ? `<p>${{escapeHtml(line)}}</p>` : '<p><br class="ProseMirror-trailingBreak"></p>'
+            ).join('');
+
+            el.focus();
+            el.innerHTML = html;
+            el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+            el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+            return true;
+        }})()
+        """
+    )
+    if not success:
+        raise PublishError("填写发布页描述失败")
+    time.sleep(0.5)

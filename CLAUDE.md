@@ -49,6 +49,7 @@ python scripts/cli.py publish --title-file t.txt --content-file c.txt --images p
 
 - 发布类操作必须有用户确认机制
 - 文件路径必须使用绝对路径
+- 图文发布只接受用户已准备好的本地图片绝对路径
 - 敏感内容通过文件传递，不内联到命令行参数
 
 ## CLI 子命令对照表

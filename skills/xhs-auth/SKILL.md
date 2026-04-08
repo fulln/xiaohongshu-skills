@@ -39,7 +39,7 @@ metadata:
 | `wait-login` | 等待扫码完成（阻塞） |
 | `send-code --phone` | 发送手机验证码 |
 | `verify-code --code` | 提交验证码完成登录 |
-| `delete-cookies` | 退出登录并清除 cookies |
+| `delete-cookies` | 退出登录 / 切换账号前置操作 |
 
 ---
 
@@ -49,7 +49,7 @@ metadata:
 
 1. 用户要求"检查登录 / 是否登录 / 登录状态"：执行登录状态检查。
 2. 用户要求"登录 / 扫码登录 / 手机登录 / 打开登录页"：执行登录流程。
-3. 用户要求"退出登录 / 清除登录"：执行 `delete-cookies`。
+3. 用户要求"退出登录 / 清除登录 / 切换账号"：执行 `delete-cookies`，多账号切换必须先执行退出。
 
 ## 必做约束
 
@@ -134,13 +134,18 @@ python scripts/cli.py verify-code --code <用户提供的6位验证码>
 - 自动填写验证码、点击登录。
 - 输出：`{"logged_in": true, "message": "登录成功"}`
 
-### 清除 Cookies（退出登录）
+### 退出登录 / 切换账号
 
-> `delete-cookies` 命令内部自动完成两步：先通过页面 UI 点击「更多」→「退出登录」，再删除本地 cookies 文件。只需执行一条命令即可。
+> `delete-cookies` 命令内部自动完成两步：先通过页面 UI 点击「更多」→「退出登录」，再删除本地 cookies 文件。只需执行一条命令即可。如果用户要求**切换账号**，必须先执行此步。
 
 ```bash
 python scripts/cli.py delete-cookies
 ```
+
+**多账号切换完整流程**：
+1. 运行 `delete-cookies`。
+2. 向用户确认是否使用新账号登录。
+3. 回到第一步运行 `check-login` 重新开始登录流程。
 
 ---
 

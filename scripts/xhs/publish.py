@@ -387,9 +387,12 @@ def _fill_publish_form(
 
 
 def _find_content_element(page: Page) -> str:
-    """查找内容输入框（兼容两种 UI）。"""
+    """查找内容输入框（兼容图文页和长文页）。"""
     if page.has_element(CONTENT_EDITOR):
         return CONTENT_EDITOR
+
+    if page.has_element("div.tiptap.ProseMirror"):
+        return "div.tiptap.ProseMirror"
 
     # 查找带 placeholder 的 p 元素的 textbox 父元素
     found = page.evaluate(
@@ -398,13 +401,21 @@ def _find_content_element(page: Page) -> str:
             const ps = document.querySelectorAll('p');
             for (const p of ps) {
                 const placeholder = p.getAttribute('data-placeholder');
-                if (placeholder && placeholder.includes('输入正文描述')) {
+                if (!placeholder) continue;
+
+                if (placeholder.includes('输入正文描述') || placeholder.includes('输入文字')) {
                     let current = p;
                     for (let i = 0; i < 5; i++) {
                         current = current.parentElement;
                         if (!current) break;
                         if (current.getAttribute('role') === 'textbox') {
-                            return 'found';
+                            return "[role='textbox']";
+                        }
+                        if (current.matches && current.matches('div.tiptap.ProseMirror')) {
+                            return 'div.tiptap.ProseMirror';
+                        }
+                        if (current.getAttribute('contenteditable') === 'true') {
+                            return '[contenteditable="true"]';
                         }
                     }
                 }
@@ -413,8 +424,8 @@ def _find_content_element(page: Page) -> str:
         })()
         """
     )
-    if found == "found":
-        return "[role='textbox']"
+    if found:
+        return found
 
     raise PublishError("没有找到内容输入框")
 

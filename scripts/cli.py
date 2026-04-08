@@ -655,15 +655,20 @@ def cmd_select_template(args: argparse.Namespace) -> None:
 
 
 def cmd_next_step(args: argparse.Namespace) -> None:
-    """点击下一步 + 填写发布页描述。"""
+    """点击下一步 + 填写发布页标题/描述。"""
     from xhs.publish_long_article import click_next_and_fill_description
 
     with open(args.content_file, encoding="utf-8") as f:
         description = f.read().strip()
 
+    title = ""
+    if getattr(args, "title_file", ""):
+        with open(args.title_file, encoding="utf-8") as f:
+            title = f.read().strip()
+
     browser, page = _connect_existing(args)
     try:
-        click_next_and_fill_description(page, description)
+        click_next_and_fill_description(page, description, title=title)
         _output({"success": True, "status": "已进入发布页，等待确认发布"})
     finally:
         browser.close()
@@ -874,7 +879,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub.set_defaults(func=cmd_select_template)
 
     # next-step
-    sub = subparsers.add_parser("next-step", help="点击下一步 + 填写描述")
+    sub = subparsers.add_parser("next-step", help="点击下一步 + 填写标题/描述")
+    sub.add_argument("--title-file", help="发布页标题文件（可选）")
     sub.add_argument("--content-file", required=True)
     sub.set_defaults(func=cmd_next_step)
 
@@ -888,8 +894,12 @@ def main() -> None:
     try:
         args.func(args)
     except Exception as e:
-        logger.error("执行失败: %s", e, exc_info=True)
-        _output({"success": False, "error": str(e)}, exit_code=2)
+        if type(e).__name__ == "NotLoggedInError":
+            logger.error("未登录: %s", e)
+            _output({"success": False, "error": str(e), "logged_in": False}, exit_code=1)
+        else:
+            logger.error("执行失败: %s", e, exc_info=True)
+            _output({"success": False, "error": str(e)}, exit_code=2)
 
 
 if __name__ == "__main__":

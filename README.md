@@ -82,7 +82,7 @@ uv sync
 > "搜索关于露营的笔记" / "查看这条笔记的详情"
 
 **发布内容：**
-> "帮我发一条图文笔记，标题是…，配图是…"
+> "帮我发一条图文笔记，标题是…，配图是本地绝对路径…"
 
 **社交互动：**
 > "给这条笔记点赞" / "收藏这条帖子" / "评论：写得太好了"
@@ -140,6 +140,8 @@ python scripts/cli.py favorite-feed --feed-id FEED_ID --xsec-token XSEC_TOKEN
 python scripts/cli.py post-comment --feed-id FEED_ID --xsec-token XSEC_TOKEN --content "评论内容"
 ```
 
+> 图文发布只接受用户已准备好的本地图片绝对路径，不负责生成、提取或下载图片。
+>
 > 第一次运行时，若 Chrome 未打开，CLI 会自动启动它。
 
 ## CLI 命令参考
@@ -198,7 +200,6 @@ xiaohongshu-skills/
 │   │   └── human.py                # 行为模拟
 │   ├── cli.py                      # 统一 CLI 入口
 │   ├── bridge_server.py            # 本地通信服务
-│   ├── image_downloader.py         # 媒体下载（SHA256 缓存）
 │   ├── title_utils.py              # UTF-16 标题长度计算
 │   └── run_lock.py                 # 单实例锁
 ├── skills/                         # Claude Code Skills 定义

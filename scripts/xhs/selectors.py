@@ -82,6 +82,7 @@ AUTO_FORMAT_BUTTON_TEXT = "一键排版"
 NEXT_STEP_BUTTON_TEXT = "下一步"
 
 LONG_ARTICLE_TITLE = 'textarea.d-text[placeholder="输入标题"]'
+LONG_ARTICLE_CONTENT_EDITOR = 'div.tiptap.ProseMirror'
 TEMPLATE_CARD = ".template-card"
 TEMPLATE_TITLE = ".template-card .template-title"
 
