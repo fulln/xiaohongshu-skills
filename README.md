@@ -164,6 +164,39 @@ python scripts/cli.py favorite-feed --feed-id FEED_ID --xsec-token XSEC_TOKEN
 python scripts/cli.py post-comment --feed-id FEED_ID --xsec-token XSEC_TOKEN --content "评论内容"
 ```
 
+支持把现有 Markdown 内容整理成标准化的小红书 channel pack 资产目录。
+
+### 将 Markdown 文章拆成小红书 channel 包
+
+适合把你已经写好的 Obsidian / Markdown 文章，整理成后续可发布的小红书资产。
+
+输出结构支持：
+- `drafts/`
+- `final/`
+- `analysis/post-xx-analysis.md`
+- `analysis/post-xx-publish-pack.md`
+- `analysis/post-xx-copy-ready.md`
+- `assets/xx-首图与配图脚本.md`
+- `index.md`
+
+示例：
+
+```bash
+python scripts/cli.py scaffold-channel-pack \
+  --source-markdown "/abs/source.md" \
+  --output-root "/abs/Channels/xiaohongshu/series" \
+  --series-slug "claudecode-openclaw" \
+  --payload-file "/abs/payload.json" \
+  --mode single \
+  --generate-assets
+```
+
+其中：
+- `source-markdown` 是原文路径
+- `output-root` 是系列输出根目录
+- `series-slug` 是本次生成的目录名
+- `payload-file` 是由 Agent 先生成好的内容 JSON
+
 > 图文发布只接受用户已准备好的本地图片绝对路径，不负责生成、提取或下载图片。
 >
 > 系列内容的选题策划、系列编排、草稿整理归 `xhs-content-ops`；只有当你已经有可直接发布的终稿时，才交给 `xhs-publish` 进入发布执行。
