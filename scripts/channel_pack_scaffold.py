@@ -26,7 +26,19 @@ def _write(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def _validate_request(request: ChannelPackRequest) -> None:
+    if request.mode not in {"single", "series"}:
+        raise ValueError(f"不支持的 mode: {request.mode}")
+    if request.start_index < 1:
+        raise ValueError("start_index 必须 >= 1")
+    if not request.posts:
+        raise ValueError("posts 不能为空")
+    if request.mode == "single" and len(request.posts) != 1:
+        raise ValueError("single 模式只能包含 1 篇文章")
+
+
 def scaffold_channel_pack(request: ChannelPackRequest) -> ChannelPackResult:
+    _validate_request(request)
     base_dir = request.output_root / request.series_slug
     if base_dir.exists():
         raise FileExistsError(f"输出目录已存在: {base_dir}")
