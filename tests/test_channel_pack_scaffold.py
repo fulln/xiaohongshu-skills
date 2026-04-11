@@ -98,5 +98,35 @@ def test_scaffold_channel_pack_refuses_existing_target_and_supports_series(tmp_p
     assert "| 01 | 标题1 |" in index_text
     assert "| 02 | 标题2 |" in index_text
 
-    with pytest.raises(FileExistsError, match="输出目录已存在"):
+
+
+def test_scaffold_channel_pack_rejects_invalid_post_before_writing(tmp_path: Path) -> None:
+    source = tmp_path / "source.md"
+    source.write_text("# Source\n", encoding="utf-8")
+    output_root = tmp_path / "output"
+
+    request = ChannelPackRequest(
+        source_markdown=source,
+        output_root=output_root,
+        series_slug="broken-series",
+        mode="single",
+        generate_assets=True,
+        start_index=1,
+        channel_name="xiaohongshu",
+        posts=[
+            {
+                "slug": "broken-post",
+                "draft": "draft",
+                "final": "final",
+                "analysis": "analysis",
+                "publish_pack": "pack",
+                "copy_ready": "copy",
+                "title": "标题缺 assets",
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match=r"posts\[0\] 缺少字段: assets"):
         scaffold_channel_pack(request)
+
+    assert (output_root / "broken-series").exists() is False

@@ -36,6 +36,15 @@ def _validate_request(request: ChannelPackRequest) -> None:
     if request.mode == "single" and len(request.posts) != 1:
         raise ValueError("single 模式只能包含 1 篇文章")
 
+    required_fields = {"slug", "draft", "final", "analysis", "publish_pack", "copy_ready", "title"}
+    if request.generate_assets:
+        required_fields.add("assets")
+
+    for index, post in enumerate(request.posts):
+        missing = sorted(required_fields - set(post))
+        if missing:
+            raise ValueError(f"posts[{index}] 缺少字段: {', '.join(missing)}")
+
 
 def scaffold_channel_pack(request: ChannelPackRequest) -> ChannelPackResult:
     _validate_request(request)
