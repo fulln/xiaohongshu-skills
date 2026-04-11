@@ -14,6 +14,9 @@ import json
 import logging
 import os
 import sys
+import tempfile
+
+from copy_ready_parser import CopyReadyPayload, load_copy_ready_payload
 
 # Windows 控制台默认编码（如 cp1252）不支持中文，强制 UTF-8
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -497,6 +500,74 @@ def cmd_favorite_feed(args: argparse.Namespace) -> None:
         browser.close()
 
 
+def cmd_parse_copy_ready(args: argparse.Namespace) -> None:
+    payload = load_copy_ready_payload(args.copy_ready_file)
+    _output(
+        {
+            "path": str(payload.path),
+            "title": payload.title,
+            "content": payload.content,
+            "cover_text": payload.cover_text,
+            "tags": payload.tags,
+            "first_comment": payload.first_comment,
+        }
+    )
+
+
+def _write_temp_text(prefix: str, value: str) -> str:
+    temp = tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        suffix=".txt",
+        prefix=prefix,
+        delete=False,
+    )
+    try:
+        temp.write(value)
+    finally:
+        temp.close()
+    return temp.name
+
+
+def _load_copy_ready_publish_args(args: argparse.Namespace) -> tuple[CopyReadyPayload, str, str]:
+    payload = load_copy_ready_payload(args.copy_ready_file)
+    title_file = _write_temp_text("xhs-copy-ready-title-", payload.title)
+    content_file = _write_temp_text("xhs-copy-ready-content-", payload.content)
+    return payload, title_file, content_file
+
+
+def cmd_fill_publish_copy_ready(args: argparse.Namespace) -> None:
+    payload, title_file, content_file = _load_copy_ready_publish_args(args)
+    forwarded = argparse.Namespace(**vars(args))
+    forwarded.title_file = title_file
+    forwarded.content_file = content_file
+    forwarded.tags = payload.tags
+    try:
+        cmd_fill_publish(forwarded)
+    finally:
+        for temp_file in (title_file, content_file):
+            try:
+                os.unlink(temp_file)
+            except FileNotFoundError:
+                pass
+
+
+def cmd_publish_copy_ready(args: argparse.Namespace) -> None:
+    payload, title_file, content_file = _load_copy_ready_publish_args(args)
+    forwarded = argparse.Namespace(**vars(args))
+    forwarded.title_file = title_file
+    forwarded.content_file = content_file
+    forwarded.tags = payload.tags
+    try:
+        cmd_publish(forwarded)
+    finally:
+        for temp_file in (title_file, content_file):
+            try:
+                os.unlink(temp_file)
+            except FileNotFoundError:
+                pass
+
+
 def cmd_publish(args: argparse.Namespace) -> None:
     """发布图文内容。"""
     from image_downloader import process_images
@@ -857,6 +928,29 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_argument("--schedule-at")
     sub.add_argument("--visibility")
     sub.set_defaults(func=cmd_fill_publish_video)
+
+    # parse-copy-ready
+    sub = subparsers.add_parser("parse-copy-ready", help="解析 copy-ready 发布文件")
+    sub.add_argument("--copy-ready-file", required=True, help="copy-ready Markdown 文件路径")
+    sub.set_defaults(func=cmd_parse_copy_ready)
+
+    # fill-publish-copy-ready
+    sub = subparsers.add_parser("fill-publish-copy-ready", help="根据 copy-ready 文件填写图文表单（不发布）")
+    sub.add_argument("--copy-ready-file", required=True, help="copy-ready Markdown 文件路径")
+    sub.add_argument("--images", nargs="+", required=True)
+    sub.add_argument("--schedule-at")
+    sub.add_argument("--original", action="store_true")
+    sub.add_argument("--visibility")
+    sub.set_defaults(func=cmd_fill_publish_copy_ready)
+
+    # publish-copy-ready
+    sub = subparsers.add_parser("publish-copy-ready", help="根据 copy-ready 文件直接发布图文")
+    sub.add_argument("--copy-ready-file", required=True, help="copy-ready Markdown 文件路径")
+    sub.add_argument("--images", nargs="+", required=True)
+    sub.add_argument("--schedule-at")
+    sub.add_argument("--original", action="store_true")
+    sub.add_argument("--visibility")
+    sub.set_defaults(func=cmd_publish_copy_ready)
 
     # click-publish
     sub = subparsers.add_parser("click-publish", help="点击发布按钮")
