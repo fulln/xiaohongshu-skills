@@ -4,14 +4,10 @@
 
 支持 [OpenClaw](https://github.com/anthropics/openclaw) 及所有兼容 `SKILL.md` 格式的 AI Agent 平台（如 Claude Code）。
 
-## 仓库说明
+## 项目说明
 
-当前仓库是基于更早的小红书 skills 项目继续整理和改进的版本。
-
-本轮整理重点包括：
-- 文档与已安装行为对齐
-- 子 skill 边界收敛
-- `copy-ready` 发布支持
+当前仓库是从更早的小红书 skills 项目延续整理并持续改进的版本。
+当前安装与克隆请使用本仓库地址 `fulln/xiaohongshu-skills`。
 
 > **⚠️ 使用建议**：虽然本项目使用真实的用户浏览器和账号环境，但仍建议控制使用频率，避免短时间内大量操作。频繁的自动化行为可能触发小红书的风控机制，导致账号受限。
 
