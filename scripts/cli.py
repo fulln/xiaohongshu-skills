@@ -15,7 +15,9 @@ import logging
 import os
 import sys
 import tempfile
+from pathlib import Path
 
+from channel_pack_scaffold import ChannelPackRequest, scaffold_channel_pack
 from copy_ready_parser import CopyReadyPayload, load_copy_ready_payload
 
 # Windows 控制台默认编码（如 cp1252）不支持中文，强制 UTF-8
@@ -536,6 +538,37 @@ def _load_copy_ready_publish_args(args: argparse.Namespace) -> tuple[CopyReadyPa
     return payload, title_file, content_file
 
 
+def _load_channel_pack_posts(payload_file: str) -> list[dict[str, str]]:
+    with open(payload_file, encoding="utf-8") as f:
+        data = json.load(f)
+    posts = data.get("posts")
+    if not isinstance(posts, list) or not posts:
+        raise ValueError("payload_file 必须包含非空 posts")
+    return posts
+
+
+def cmd_scaffold_channel_pack(args: argparse.Namespace) -> None:
+    posts = _load_channel_pack_posts(args.payload_file)
+    request = ChannelPackRequest(
+        source_markdown=Path(args.source_markdown),
+        output_root=Path(args.output_root),
+        series_slug=args.series_slug,
+        mode=args.mode,
+        generate_assets=args.generate_assets,
+        start_index=args.start_index,
+        channel_name=args.channel_name,
+        posts=posts,
+    )
+    result = scaffold_channel_pack(request)
+    _output(
+        {
+            "base_dir": str(result.base_dir),
+            "post_count": len(posts),
+            "mode": args.mode,
+        }
+    )
+
+
 def cmd_fill_publish_copy_ready(args: argparse.Namespace) -> None:
     payload, title_file, content_file = _load_copy_ready_publish_args(args)
     forwarded = argparse.Namespace(**vars(args))
@@ -951,6 +984,17 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_argument("--original", action="store_true")
     sub.add_argument("--visibility")
     sub.set_defaults(func=cmd_publish_copy_ready)
+
+    p_scaffold = subparsers.add_parser("scaffold-channel-pack", help="生成小红书 channel 包目录结构")
+    p_scaffold.add_argument("--source-markdown", required=True)
+    p_scaffold.add_argument("--output-root", required=True)
+    p_scaffold.add_argument("--series-slug", required=True)
+    p_scaffold.add_argument("--payload-file", required=True)
+    p_scaffold.add_argument("--mode", choices=["single", "series"], default="single")
+    p_scaffold.add_argument("--channel-name", default="xiaohongshu")
+    p_scaffold.add_argument("--start-index", type=int, default=1)
+    p_scaffold.add_argument("--generate-assets", action="store_true", default=False)
+    p_scaffold.set_defaults(func=cmd_scaffold_channel_pack)
 
     # click-publish
     sub = subparsers.add_parser("click-publish", help="点击发布按钮")
