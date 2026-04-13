@@ -170,6 +170,8 @@ python scripts/cli.py post-comment --feed-id FEED_ID --xsec-token XSEC_TOKEN --c
 
 适合把你已经写好的 Obsidian / Markdown 文章，整理成后续可发布的小红书资产。
 
+该能力的通用 pack 结构与校验逻辑来自独立仓库 `channel-pack-core`，当前小红书是第一个接入的 adapter；写作风格与人格选择仍由 `xhs-channel-pack` skill 在上层完成。
+
 输出结构支持：
 - `drafts/`
 - `final/`
@@ -196,16 +198,6 @@ python scripts/cli.py scaffold-channel-pack \
 - `output-root` 是系列输出根目录
 - `series-slug` 是本次生成的目录名
 - `payload-file` 是由 Agent 先生成好的内容 JSON
-
-> 图文发布只接受用户已准备好的本地图片绝对路径，不负责生成、提取或下载图片。
->
-> 系列内容的选题策划、系列编排、草稿整理归 `xhs-content-ops`；只有当你已经有可直接发布的终稿时，才交给 `xhs-publish` 进入发布执行。
->
-> 对于已经整理完成的系列发帖资产，建议在发布阶段只保留单一 `copy-ready` Markdown 作为最终真源，再由 `xhs-publish` 执行填充和发布。
->
-> 当前仓库尚未提供名为 `publish-copy-ready` 或 `fill-publish-copy-ready` 的独立 CLI 子命令；`copy-ready` 是系列发布流程约束，而不是现成命令名或专门命令面。
->
-> 维护说明：如果后续子技能文档调整了这些边界，README、`SKILL.md`、`CLAUDE.md`、`ARCHITECTURE.md` 也需要同步更新；子技能文档本身也必须在对应任务里单独同步，避免顶层说明与子技能定义不一致。
 
 ## CLI 命令参考
 

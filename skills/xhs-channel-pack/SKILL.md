@@ -34,6 +34,8 @@ metadata:
 - 不直接发布
 - 不生成图片文件
 - 只生成标准结构的发布资产
+- 写作人格 / 平台风格由上层 skill 选择，不硬编码在 core 里
+
 
 ## 标准输出
 
@@ -50,16 +52,5 @@ metadata:
 1. 先判断原文更适合单篇还是多篇
 2. 若用户未明确给 `output_root` 或 `series_slug`，先补问
 3. 先生成内容，再把内容写入一个 JSON payload 文件
-4. 最后只通过以下命令落盘：
-
-```bash
-python scripts/cli.py scaffold-channel-pack \
-  --source-markdown "/abs/source.md" \
-  --output-root "/abs/output-root" \
-  --series-slug "series-slug" \
-  --payload-file "/abs/payload.json" \
-  --mode single \
-  --generate-assets
-```
-
+4. 最后通过本仓库的 `scaffold-channel-pack` 命令落盘；该命令底层由 `channel-pack-core` 的小红书 adapter 提供结构与校验能力
 5. 完成后汇报生成的目录和文件
