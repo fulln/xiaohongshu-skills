@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import sys
+
+VENDOR_ROOT = Path(__file__).resolve().parent.parent / "vendor"
+if str(VENDOR_ROOT) not in sys.path:
+    sys.path.insert(0, str(VENDOR_ROOT))
+
+from channel_pack_core.api import load_pack_from_payload, scaffold_xiaohongshu_pack
 
 
 @dataclass(frozen=True)
@@ -21,68 +28,40 @@ class ChannelPackRequest:
     posts: list[dict[str, str]]
 
 
-def _write(path: Path, content: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
-
-
 def _validate_request(request: ChannelPackRequest) -> None:
-    if request.mode not in {"single", "series"}:
-        raise ValueError(f"不支持的 mode: {request.mode}")
-    if request.start_index < 1:
-        raise ValueError("start_index 必须 >= 1")
-    if not request.posts:
-        raise ValueError("posts 不能为空")
-    if request.mode == "single" and len(request.posts) != 1:
-        raise ValueError("single 模式只能包含 1 篇文章")
-
-    required_fields = {"slug", "draft", "final", "analysis", "publish_pack", "copy_ready", "title"}
     if request.generate_assets:
-        required_fields.add("assets")
-
-    for index, post in enumerate(request.posts):
-        missing = sorted(required_fields - set(post))
-        if missing:
-            raise ValueError(f"posts[{index}] 缺少字段: {', '.join(missing)}")
+        for offset, post in enumerate(request.posts, start=request.start_index):
+            if "assets" not in post:
+                raise ValueError(f"post[{offset}] 缺少字段: assets")
 
 
 def scaffold_channel_pack(request: ChannelPackRequest) -> ChannelPackResult:
     _validate_request(request)
-    base_dir = request.output_root / request.series_slug
-    if base_dir.exists():
-        raise FileExistsError(f"输出目录已存在: {base_dir}")
-    if not request.source_markdown.is_file():
-        raise FileNotFoundError(f"source_markdown 不存在: {request.source_markdown}")
-
-    base_dir.mkdir(parents=True, exist_ok=False)
-
-    for offset, post in enumerate(request.posts, start=request.start_index):
-        number = f"{offset:02d}"
-        _write(base_dir / "drafts" / f"{number}-{post['slug']}.md", post["draft"])
-        _write(base_dir / "final" / f"{number}-最终发帖版.md", post["final"])
-        _write(base_dir / "analysis" / f"post-{number}-analysis.md", post["analysis"])
-        _write(base_dir / "analysis" / f"post-{number}-publish-pack.md", post["publish_pack"])
-        _write(base_dir / "analysis" / f"post-{number}-copy-ready.md", post["copy_ready"])
-        if request.generate_assets:
-            _write(base_dir / "assets" / f"{number}-首图与配图脚本.md", post["assets"])
-
-    lines = [
-        f"# {request.series_slug}｜小红书系列",
-        "",
-        f"- 来源文章：`{request.source_markdown}`",
-        f"- 渠道目录：`{base_dir}`",
-        "",
-        "## 当前发布台账（唯一真源）",
-        "",
-        "| 篇次 | 标题 | final | copy-ready | assets | 状态 | 发布时间 |",
-        "|---|---|---|---|---|---|---|",
-    ]
-    for offset, post in enumerate(request.posts, start=request.start_index):
-        number = f"{offset:02d}"
-        assets = f"`assets/{number}-首图与配图脚本.md`" if request.generate_assets else "-"
-        lines.append(
-            f"| {number} | {post['title']} | `final/{number}-最终发帖版.md` | `analysis/post-{number}-copy-ready.md` | {assets} | 待发送 | - |"
-        )
-    _write(base_dir / "index.md", "\n".join(lines) + "\n")
-
-    return ChannelPackResult(base_dir=base_dir)
+    payload = {
+        "channel": request.channel_name,
+        "series_slug": request.series_slug,
+        "mode": request.mode,
+        "posts": [
+            {
+                "index": request.start_index + offset,
+                "slug": post["slug"],
+                "title": post["title"],
+                "artifacts": {
+                    key: value
+                    for key, value in post.items()
+                    if key in {"draft", "final", "analysis", "publish_pack", "copy_ready", "assets"}
+                },
+                "metadata": {},
+            }
+            for offset, post in enumerate(request.posts)
+        ],
+    }
+    payload_file = request.output_root / f".{request.series_slug}.payload.json"
+    payload_file.parent.mkdir(parents=True, exist_ok=True)
+    payload_file.write_text(__import__("json").dumps(payload, ensure_ascii=False), encoding="utf-8")
+    try:
+        load_pack_from_payload(str(request.source_markdown), str(request.output_root), str(payload_file))
+        result = scaffold_xiaohongshu_pack(str(request.source_markdown), str(request.output_root), str(payload_file))
+        return ChannelPackResult(base_dir=Path(result.base_dir))
+    finally:
+        payload_file.unlink(missing_ok=True)
