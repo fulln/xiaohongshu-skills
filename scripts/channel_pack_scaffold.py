@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import sys
+import tempfile
 
 VENDOR_ROOT = Path(__file__).resolve().parent.parent / "vendor"
 if str(VENDOR_ROOT) not in sys.path:
@@ -56,9 +57,17 @@ def scaffold_channel_pack(request: ChannelPackRequest) -> ChannelPackResult:
             for offset, post in enumerate(request.posts)
         ],
     }
-    payload_file = request.output_root / f".{request.series_slug}.payload.json"
-    payload_file.parent.mkdir(parents=True, exist_ok=True)
-    payload_file.write_text(__import__("json").dumps(payload, ensure_ascii=False), encoding="utf-8")
+    request.output_root.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        suffix=".payload.json",
+        prefix=f".{request.series_slug}.",
+        dir=request.output_root,
+        delete=False,
+    ) as payload_handle:
+        payload_handle.write(__import__("json").dumps(payload, ensure_ascii=False))
+        payload_file = Path(payload_handle.name)
     try:
         load_pack_from_payload(str(request.source_markdown), str(request.output_root), str(payload_file))
         result = scaffold_xiaohongshu_pack(str(request.source_markdown), str(request.output_root), str(payload_file))
