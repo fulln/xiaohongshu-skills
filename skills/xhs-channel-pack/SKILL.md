@@ -39,13 +39,11 @@ metadata:
 
 ## 标准输出
 
-- `drafts/`
-- `final/`
-- `analysis/post-xx-analysis.md`
-- `analysis/post-xx-publish-pack.md`
-- `analysis/post-xx-copy-ready.md`
-- `assets/xx-首图与配图脚本.md`（若启用）
-- `index.md`
+- `drafts/` — 草稿
+- `final/xx-最终发帖版.md` — 最终发布内容（唯一真源）
+- `analysis/post-xx-analysis.md` — 内容分析
+- `analysis/post-xx-publish-pack.md` — 发布检查清单
+- `index.md` — 发布台账
 
 ## 执行要求
 

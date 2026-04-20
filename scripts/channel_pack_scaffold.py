@@ -50,7 +50,7 @@ def scaffold_channel_pack(request: ChannelPackRequest) -> ChannelPackResult:
                 "artifacts": {
                     key: value
                     for key, value in post.items()
-                    if key in {"draft", "final", "analysis", "publish_pack", "copy_ready", "assets"}
+                    if key in {"draft", "final", "analysis", "publish_pack", "assets"}
                 },
                 "metadata": {},
             }

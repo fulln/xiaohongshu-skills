@@ -32,7 +32,6 @@ def test_scaffold_channel_pack_creates_single_post_structure(tmp_path: Path) -> 
                 "final": "final body",
                 "analysis": "analysis body",
                 "publish_pack": "pack body",
-                "copy_ready": "copy ready body",
                 "assets": "assets body",
                 "title": "Claude Code，其实也可以是 OpenClaw",
             }
@@ -47,7 +46,6 @@ def test_scaffold_channel_pack_creates_single_post_structure(tmp_path: Path) -> 
     assert (base / "final" / "01-最终发帖版.md").read_text(encoding="utf-8") == "final body"
     assert (base / "analysis" / "post-01-analysis.md").read_text(encoding="utf-8") == "analysis body"
     assert (base / "analysis" / "post-01-publish-pack.md").read_text(encoding="utf-8") == "pack body"
-    assert (base / "analysis" / "post-01-copy-ready.md").read_text(encoding="utf-8") == "copy ready body"
     assert (base / "assets" / "01-首图与配图脚本.md").read_text(encoding="utf-8") == "assets body"
 
 
@@ -87,7 +85,6 @@ def test_scaffold_channel_pack_uses_unique_temp_payload_filename(tmp_path: Path,
                 "final": "final body",
                 "analysis": "analysis body",
                 "publish_pack": "pack body",
-                "copy_ready": "copy ready body",
                 "title": "Claude Code，其实也可以是 OpenClaw",
             }
         ],
@@ -120,7 +117,6 @@ def test_scaffold_channel_pack_rejects_invalid_post_before_writing(tmp_path: Pat
                 "final": "final",
                 "analysis": "analysis",
                 "publish_pack": "pack",
-                "copy_ready": "copy",
                 "title": "标题缺 assets",
             }
         ],

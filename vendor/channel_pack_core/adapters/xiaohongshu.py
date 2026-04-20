@@ -13,7 +13,6 @@ class XiaohongshuStructureAdapter(StructureAdapter):
             ArtifactSpec("final", "final/{index:02d}-最终发帖版.md", True, "markdown", "Final content"),
             ArtifactSpec("analysis", "analysis/post-{index:02d}-analysis.md", True, "markdown", "Analysis"),
             ArtifactSpec("publish_pack", "analysis/post-{index:02d}-publish-pack.md", True, "markdown", "Publish pack"),
-            ArtifactSpec("copy_ready", "analysis/post-{index:02d}-copy-ready.md", True, "markdown", "Copy-ready"),
             ArtifactSpec("assets", "assets/{index:02d}-首图与配图脚本.md", False, "asset-note", "Asset note"),
         ]
 
@@ -26,14 +25,14 @@ class XiaohongshuStructureAdapter(StructureAdapter):
             "",
             "## 当前发布台账（唯一真源）",
             "",
-            "| 篇次 | 标题 | final | copy-ready | assets | 状态 | 发布时间 |",
-            "|---|---|---|---|---|---|---|",
+            "| 篇次 | 标题 | final | assets | 状态 | 发布时间 |",
+            "|---|---|---|---|---|---|",
         ]
         for post in pack.posts:
             number = f"{post.index:02d}"
             assets = f"`assets/{number}-首图与配图脚本.md`" if "assets" in post.artifacts else "-"
             lines.append(
-                f"| {number} | {post.title} | `final/{number}-最终发帖版.md` | `analysis/post-{number}-copy-ready.md` | {assets} | 待发送 | - |"
+                f"| {number} | {post.title} | `final/{number}-最终发帖版.md` | {assets} | 待发送 | - |"
             )
         return "\n".join(lines) + "\n"
 
