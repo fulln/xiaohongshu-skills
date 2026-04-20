@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
+import os
+import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-import sys
 import tempfile
 
 VENDOR_ROOT = Path(__file__).resolve().parent.parent / "vendor"
@@ -10,6 +13,8 @@ if str(VENDOR_ROOT) not in sys.path:
     sys.path.insert(0, str(VENDOR_ROOT))
 
 from channel_pack_core.api import load_pack_from_payload, scaffold_xiaohongshu_pack
+
+XAI_API_KEY = os.environ.get("XAI_API_KEY", "")
 
 
 @dataclass(frozen=True)
@@ -71,6 +76,41 @@ def scaffold_channel_pack(request: ChannelPackRequest) -> ChannelPackResult:
     try:
         load_pack_from_payload(str(request.source_markdown), str(request.output_root), str(payload_file))
         result = scaffold_xiaohongshu_pack(str(request.source_markdown), str(request.output_root), str(payload_file))
-        return ChannelPackResult(base_dir=Path(result.base_dir))
+        base_dir = Path(result.base_dir)
+
+        # Auto-generate images for assets if enabled
+        if request.generate_assets:
+            for post in request.posts:
+                if "assets" not in post:
+                    continue
+                _generate_cover_image(
+                    title=post.get("title", ""),
+                    slug=post.get("slug", ""),
+                    assets_dir=base_dir / "assets",
+                    index=post.get("index", 1),
+                )
+
+        return ChannelPackResult(base_dir=base_dir)
     finally:
         payload_file.unlink(missing_ok=True)
+
+
+def _generate_cover_image(title: str, slug: str, assets_dir: Path, index: int) -> None:
+    """Generate a cover image using xAI Grok Vision API."""
+    # Build prompt from title/slug
+    prompt = f"Create a visually appealing, colorful cover image for a Xiaohongshu post about '{title}'. "
+    prompt += "Modern Chinese social media style, vibrant, attractive, no text."
+
+    output_path = assets_dir / f"{index:02d}-cover.png"
+
+    script_dir = Path(__file__).parent
+    result = subprocess.run(
+        [sys.executable, str(script_dir / "generate_image.py"), "-p", prompt, "-o", str(output_path), "-k", XAI_API_KEY],
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode == 0:
+        print(f"[AI] Generated cover image: {output_path}")
+    else:
+        print(f"[AI] Failed to generate image: {result.stderr}", file=sys.stderr)
